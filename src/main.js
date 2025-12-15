@@ -1,6 +1,8 @@
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 
+let currentFont = 'Arial'
+let currentTitle = ''
 
 let bag = null
 let bagMaterial = null
@@ -28,22 +30,23 @@ function createTextTexture() {
 
   textTexture = new THREE.CanvasTexture(canvas)
   textTexture.needsUpdate = true
+
 }
 
-function drawTitle(text) {
+function drawTitle(text, font = 'Arial') {
   if (!ctx || !textTexture || !textPlane) return
 
   ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-  let fontSize = 500
-  ctx.font = `bold ${fontSize}px Arial`
+  let fontSize = 180
+  ctx.font = `bold ${fontSize}px "${font}"`
 
   const maxWidth = canvas.width * 0.8
   let textWidth = ctx.measureText(text).width
 
   while (textWidth > maxWidth && fontSize > 80) {
     fontSize -= 5
-    ctx.font = `bold ${fontSize}px Arial`
+    ctx.font = `${fontSize}px "${font}"`
     textWidth = ctx.measureText(text).width
   }
 
@@ -144,6 +147,12 @@ window.addEventListener('message', (event) => {
   }
 
   if (event.data.type === 'SET_TITLE') {
-    drawTitle(event.data.title)
+    currentTitle = event.data.title
+    drawTitle(currentTitle, currentFont)
+  }
+
+  if (event.data.type === 'SET_FONT') {
+    currentFont = event.data.font
+    drawTitle(currentTitle, currentFont)
   }
 })
