@@ -9,6 +9,7 @@ let canvas, ctx, textTexture
 let textPlane = null
 
 
+
 function setBagColor(hexColor) {
   if (!bagMaterial) return
   bagMaterial.color.set(hexColor)
