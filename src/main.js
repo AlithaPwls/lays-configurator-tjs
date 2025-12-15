@@ -1,18 +1,14 @@
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 
-/* =========================
-   GLOBALS
-========================= */
+
 let bag = null
 let bagMaterial = null
 
 let canvas, ctx, textTexture
 let textPlane = null
 
-/* =========================
-   HELPERS
-========================= */
+
 function setBagColor(hexColor) {
   if (!bagMaterial) return
   bagMaterial.color.set(hexColor)
@@ -80,9 +76,7 @@ function createTextPlane() {
   bag.add(textPlane)
 }
 
-/* =========================
-   SCENE
-========================= */
+
 const scene = new THREE.Scene()
 scene.background = new THREE.Color(0xffffff)
 
@@ -98,18 +92,14 @@ const renderer = new THREE.WebGLRenderer({ antialias: true })
 renderer.setSize(window.innerWidth, window.innerHeight)
 document.body.appendChild(renderer.domElement)
 
-/* =========================
-   LIGHTING
-========================= */
+
 scene.add(new THREE.AmbientLight(0xffffff, 0.8))
 
 const dirLight = new THREE.DirectionalLight(0xffffff, 1)
 dirLight.position.set(5, 5, 5)
 scene.add(dirLight)
 
-/* =========================
-   LOAD MODEL
-========================= */
+
 const loader = new GLTFLoader()
 
 loader.load(
@@ -138,18 +128,13 @@ loader.load(
   (error) => console.error(error)
 )
 
-/* =========================
-   LOOP
-========================= */
 function animate() {
   requestAnimationFrame(animate)
   renderer.render(scene, camera)
 }
 animate()
 
-/* =========================
-   MESSAGES
-========================= */
+
 window.addEventListener('message', (event) => {
   if (!event.data) return
 
