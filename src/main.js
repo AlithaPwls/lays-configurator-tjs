@@ -155,4 +155,16 @@ window.addEventListener('message', (event) => {
     currentFont = event.data.font
     drawTitle(currentTitle, currentFont)
   }
+
+  if (event.data.type === 'RESET') {
+    // reset kleur
+    setBagColor('#ff0000') // of je default kleur
+  
+    // reset tekst
+    currentTitle = ''
+    currentFont = 'Montserrat' // of default font
+  
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    textTexture.needsUpdate = true
+  }
 })
