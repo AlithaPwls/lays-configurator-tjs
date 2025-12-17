@@ -2,27 +2,29 @@ import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 
-let bag = null
-let bagMaterial = null
+/* =====================
+   SCENE
+===================== */
 
-let canvas, ctx, textTexture, textPlane
-let currentTitle = ''
-let currentFont = 'Arial'
-
-/* SCENE */
 const scene = new THREE.Scene()
 scene.background = new THREE.Color(0xffffff)
 
-/* CAMERA */
+/* =====================
+   CAMERA
+===================== */
+
 const camera = new THREE.PerspectiveCamera(
-  75,
+  60,
   window.innerWidth / window.innerHeight,
   0.1,
-  1000
+  100
 )
-camera.position.set(0, 1.2, 4)
+camera.position.set(0, 1.4, 3)
 
-/* RENDERER */
+/* =====================
+   RENDERER
+===================== */
+
 const renderer = new THREE.WebGLRenderer({
   antialias: true,
   preserveDrawingBuffer: true
@@ -30,56 +32,83 @@ const renderer = new THREE.WebGLRenderer({
 renderer.setSize(window.innerWidth, window.innerHeight)
 document.body.appendChild(renderer.domElement)
 
-/* ORBIT CONTROLS */
+/* =====================
+   ORBIT CONTROLS
+===================== */
+
 const controls = new OrbitControls(camera, renderer.domElement)
 controls.enableDamping = true
 controls.dampingFactor = 0.08
 controls.enablePan = false
-controls.rotateSpeed = 0.6
-controls.zoomSpeed = 0.8
 controls.minDistance = 2
-controls.maxDistance = 6
-controls.minPolarAngle = Math.PI / 3
-controls.maxPolarAngle = Math.PI / 2
+controls.maxDistance = 4
+controls.target.set(0, 1.2, 0)
+controls.update()
 
-/* LIGHTS */
-scene.add(new THREE.AmbientLight(0xffffff, 0.8))
+/* =====================
+   LICHT
+===================== */
+
+scene.add(new THREE.AmbientLight(0xffffff, 0.9))
 
 const dirLight = new THREE.DirectionalLight(0xffffff, 1)
-dirLight.position.set(5, 5, 5)
+dirLight.position.set(4, 6, 4)
 scene.add(dirLight)
 
-/* BAG COLOR */
+/* =====================
+   VARIABELEN
+===================== */
+
+let bag = null
+let bagMaterial = null
+let labelMesh = null
+
+let canvas, ctx, textTexture
+let currentTitle = ''
+let currentFont = 'Arial'
+
+/* =====================
+   ZAK KLEUR
+===================== */
+
 function setBagColor(hex) {
   if (bagMaterial) {
     bagMaterial.color.set(hex)
   }
 }
 
-/* TEXT TEXTURE */
+/* =====================
+   CANVAS TEXTURE
+===================== */
+
 function createTextTexture() {
   canvas = document.createElement('canvas')
   canvas.width = 1024
-  canvas.height = 1024
+  canvas.height = 512
 
   ctx = canvas.getContext('2d')
-
-  ctx.translate(canvas.width, 0)
-  ctx.scale(-1, 1)
   ctx.clearRect(0, 0, canvas.width, canvas.height)
 
   textTexture = new THREE.CanvasTexture(canvas)
+  textTexture.anisotropy = renderer.capabilities.getMaxAnisotropy()
 }
 
-/* DRAW TITLE */
+/* =====================
+   TEKST TEKENEN
+===================== */
+
 function drawTitle() {
-  if (!ctx || !textTexture || !textPlane) return
+  if (!ctx || !textTexture) return
 
   ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-  let fontSize = 180
+  let fontSize = 160
   ctx.font = `bold ${fontSize}px "${currentFont}"`
-  const maxWidth = canvas.width * 0.8
+  ctx.fillStyle = '#111'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+
+  const maxWidth = canvas.width * 0.85
   let textWidth = ctx.measureText(currentTitle).width
 
   while (textWidth > maxWidth && fontSize > 80) {
@@ -88,59 +117,61 @@ function drawTitle() {
     textWidth = ctx.measureText(currentTitle).width
   }
 
-  ctx.fillStyle = '#222'
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'middle'
-  ctx.fillText(currentTitle, canvas.width / 2, canvas.height * 0.42)
-
+  ctx.fillText(currentTitle, canvas.width / 2, canvas.height / 2)
   textTexture.needsUpdate = true
 }
 
-/* TEXT PLANE */
-function createTextPlane() {
-  const geometry = new THREE.PlaneGeometry(1.5, 1.5)
-  const material = new THREE.MeshBasicMaterial({
-    map: textTexture,
-    transparent: true,
-    side: THREE.DoubleSide,
-    depthTest: false
-  })
+/* =====================
+   MODEL LADEN
+===================== */
 
-  textPlane = new THREE.Mesh(geometry, material)
-  textPlane.position.set(0, 0.1, 0.35)
-  textPlane.rotation.x = -0.04
-  textPlane.rotation.y = Math.PI
-  textPlane.renderOrder = 10
-
-  bag.add(textPlane)
-}
-
-/* LOAD MODEL */
 const loader = new GLTFLoader()
+
 loader.load('/models/chipsbag.glb', (gltf) => {
   bag = gltf.scene
-
-  bag.scale.set(1.2, 1.2, 1.2)
-  bag.position.set(0, 0, 0)
+  bag.position.set(0, 1.5, 0)
+  bag.scale.set(0.7, 0.7, 0.7)
 
   bag.traverse((child) => {
-    if (child.isMesh && !bagMaterial) {
+    if (!child.isMesh) return
+
+    child.castShadow = true
+    child.receiveShadow = true
+
+    // Hoofdmateriaal van de zak
+    if (!bagMaterial) {
       bagMaterial = child.material
+    }
+
+    // 🎯 LABEL ZONE (grijze vlakken in het model)
+    if (
+      child.material &&
+      child.material.color &&
+      child.material.color.r > 0.7 &&
+      child.material.color.g > 0.7 &&
+      child.material.color.b > 0.7
+    ) {
+      labelMesh = child
     }
   })
 
   createTextTexture()
-  createTextPlane()
   drawTitle()
 
-  scene.add(bag)
+  if (labelMesh) {
+    labelMesh.material = labelMesh.material.clone()
+    labelMesh.material.map = textTexture
+    labelMesh.material.transparent = true
+    labelMesh.material.needsUpdate = true
+  }
 
-  /* 🔥 BELANGRIJK: ROTEREN ROND EIGEN AS */
-  controls.target.copy(bag.position)
-  controls.update()
+  scene.add(bag)
 })
 
-/* ANIMATE */
+/* =====================
+   ANIMATIE
+===================== */
+
 function animate() {
   requestAnimationFrame(animate)
   controls.update()
@@ -148,7 +179,10 @@ function animate() {
 }
 animate()
 
-/* POSTMESSAGE COMMUNICATIE */
+/* =====================
+   POSTMESSAGE (VUE)
+===================== */
+
 window.addEventListener('message', (event) => {
   if (!event.data?.type) return
 
