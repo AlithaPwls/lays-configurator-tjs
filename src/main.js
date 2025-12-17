@@ -71,6 +71,7 @@ function createTextCanvas(width, height) {
   canvas.height = height
   const ctx = canvas.getContext('2d')
 
+
   // 🔥 spiegel canvas horizontaal
  //ctx.translate(width, 0)
   //ctx.scale(-1, 1)
@@ -83,7 +84,7 @@ function drawText(ctx, canvas, text, startFontSize) {
   ctx.clearRect(0, 0, canvas.width, canvas.height)
 
   ctx.font = `bold ${startFontSize}px "${currentFont}"`
-  ctx.fillStyle = '#111'
+  ctx.fillStyle = '#35F527'
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
 
@@ -105,9 +106,11 @@ function drawText(ctx, canvas, text, startFontSize) {
 ===================== */
 const titleData = createTextCanvas(1024, 256)
 const titleTexture = new THREE.CanvasTexture(titleData.canvas)
+titleTexture.flipY = false
 
 const flavorData = createTextCanvas(1024, 256)
 const flavorTexture = new THREE.CanvasTexture(flavorData.canvas)
+flavorTexture.flipY = false
 
 /* =====================
    BAG COLOR
