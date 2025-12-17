@@ -5,14 +5,12 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 /* =====================
    SCENE
 ===================== */
-
 const scene = new THREE.Scene()
 scene.background = new THREE.Color(0xffffff)
 
 /* =====================
    CAMERA
 ===================== */
-
 const camera = new THREE.PerspectiveCamera(
   60,
   window.innerWidth / window.innerHeight,
@@ -24,7 +22,6 @@ camera.position.set(0, 1.4, 3)
 /* =====================
    RENDERER
 ===================== */
-
 const renderer = new THREE.WebGLRenderer({
   antialias: true,
   preserveDrawingBuffer: true
@@ -33,12 +30,10 @@ renderer.setSize(window.innerWidth, window.innerHeight)
 document.body.appendChild(renderer.domElement)
 
 /* =====================
-   ORBIT CONTROLS
+   CONTROLS
 ===================== */
-
 const controls = new OrbitControls(camera, renderer.domElement)
 controls.enableDamping = true
-controls.dampingFactor = 0.08
 controls.enablePan = false
 controls.minDistance = 2
 controls.maxDistance = 4
@@ -46,9 +41,8 @@ controls.target.set(0, 1.2, 0)
 controls.update()
 
 /* =====================
-   LICHT
+   LIGHTS
 ===================== */
-
 scene.add(new THREE.AmbientLight(0xffffff, 0.9))
 
 const dirLight = new THREE.DirectionalLight(0xffffff, 1)
@@ -56,21 +50,68 @@ dirLight.position.set(4, 6, 4)
 scene.add(dirLight)
 
 /* =====================
-   VARIABELEN
+   REFERENCES
 ===================== */
-
-let bag = null
+let bagMesh = null
 let bagMaterial = null
-let labelMesh = null
 
-let canvas, ctx, textTexture
-let currentTitle = ''
+let labelTop = null
+let labelBottom = null
+
 let currentFont = 'Arial'
+let currentTitle = ''
+let currentFlavor = ''
 
 /* =====================
-   ZAK KLEUR
+   CANVAS HELPERS
 ===================== */
+function createTextCanvas(width, height) {
+  const canvas = document.createElement('canvas')
+  canvas.width = width
+  canvas.height = height
+  const ctx = canvas.getContext('2d')
 
+  // 🔥 spiegel canvas horizontaal
+ //ctx.translate(width, 0)
+  //ctx.scale(-1, 1)
+
+  return { canvas, ctx }
+}
+
+
+function drawText(ctx, canvas, text, startFontSize) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+  ctx.font = `bold ${startFontSize}px "${currentFont}"`
+  ctx.fillStyle = '#111'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+
+  let fontSize = startFontSize
+  const maxWidth = canvas.width * 0.9
+  let textWidth = ctx.measureText(text).width
+
+  while (textWidth > maxWidth && fontSize > 40) {
+    fontSize -= 4
+    ctx.font = `bold ${fontSize}px "${currentFont}"`
+    textWidth = ctx.measureText(text).width
+  }
+
+  ctx.fillText(text, canvas.width / 2, canvas.height / 2)
+}
+
+/* =====================
+   TEXTURES
+===================== */
+const titleData = createTextCanvas(1024, 256)
+const titleTexture = new THREE.CanvasTexture(titleData.canvas)
+
+const flavorData = createTextCanvas(1024, 256)
+const flavorTexture = new THREE.CanvasTexture(flavorData.canvas)
+
+/* =====================
+   BAG COLOR
+===================== */
 function setBagColor(hex) {
   if (bagMaterial) {
     bagMaterial.color.set(hex)
@@ -78,57 +119,12 @@ function setBagColor(hex) {
 }
 
 /* =====================
-   CANVAS TEXTURE
+   LOAD MODEL
 ===================== */
-
-function createTextTexture() {
-  canvas = document.createElement('canvas')
-  canvas.width = 1024
-  canvas.height = 512
-
-  ctx = canvas.getContext('2d')
-  ctx.clearRect(0, 0, canvas.width, canvas.height)
-
-  textTexture = new THREE.CanvasTexture(canvas)
-  textTexture.anisotropy = renderer.capabilities.getMaxAnisotropy()
-}
-
-/* =====================
-   TEKST TEKENEN
-===================== */
-
-function drawTitle() {
-  if (!ctx || !textTexture) return
-
-  ctx.clearRect(0, 0, canvas.width, canvas.height)
-
-  let fontSize = 160
-  ctx.font = `bold ${fontSize}px "${currentFont}"`
-  ctx.fillStyle = '#111'
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'middle'
-
-  const maxWidth = canvas.width * 0.85
-  let textWidth = ctx.measureText(currentTitle).width
-
-  while (textWidth > maxWidth && fontSize > 80) {
-    fontSize -= 5
-    ctx.font = `bold ${fontSize}px "${currentFont}"`
-    textWidth = ctx.measureText(currentTitle).width
-  }
-
-  ctx.fillText(currentTitle, canvas.width / 2, canvas.height / 2)
-  textTexture.needsUpdate = true
-}
-
-/* =====================
-   MODEL LADEN
-===================== */
-
 const loader = new GLTFLoader()
 
-loader.load('/models/chipsbag.glb', (gltf) => {
-  bag = gltf.scene
+loader.load('/models/chipsbag2.glb', (gltf) => {
+  const bag = gltf.scene
   bag.position.set(0, 1.5, 0)
   bag.scale.set(0.7, 0.7, 0.7)
 
@@ -138,40 +134,41 @@ loader.load('/models/chipsbag.glb', (gltf) => {
     child.castShadow = true
     child.receiveShadow = true
 
-    // Hoofdmateriaal van de zak
-    if (!bagMaterial) {
+    if (child.name === 'Bag_Main') {
+      bagMesh = child
       bagMaterial = child.material
     }
 
-    // 🎯 LABEL ZONE (grijze vlakken in het model)
-    if (
-      child.material &&
-      child.material.color &&
-      child.material.color.r > 0.7 &&
-      child.material.color.g > 0.7 &&
-      child.material.color.b > 0.7
-    ) {
-      labelMesh = child
+    if (child.name === 'Label_Top') {
+      labelTop = child
+    }
+
+    if (child.name === 'Label_Bottom') {
+      labelBottom = child
     }
   })
 
-  createTextTexture()
-  drawTitle()
+  /* APPLY TEXTURES TO LABELS */
+  if (labelTop) {
+    labelTop.material = labelTop.material.clone()
+    labelTop.material.map = titleTexture
+    labelTop.material.transparent = true
+    labelTop.material.needsUpdate = true
+  }
 
-  if (labelMesh) {
-    labelMesh.material = labelMesh.material.clone()
-    labelMesh.material.map = textTexture
-    labelMesh.material.transparent = true
-    labelMesh.material.needsUpdate = true
+  if (labelBottom) {
+    labelBottom.material = labelBottom.material.clone()
+    labelBottom.material.map = flavorTexture
+    labelBottom.material.transparent = true
+    labelBottom.material.needsUpdate = true
   }
 
   scene.add(bag)
 })
 
 /* =====================
-   ANIMATIE
+   ANIMATION LOOP
 ===================== */
-
 function animate() {
   requestAnimationFrame(animate)
   controls.update()
@@ -182,7 +179,6 @@ animate()
 /* =====================
    POSTMESSAGE (VUE)
 ===================== */
-
 window.addEventListener('message', (event) => {
   if (!event.data?.type) return
 
@@ -192,18 +188,33 @@ window.addEventListener('message', (event) => {
 
   if (event.data.type === 'SET_TITLE') {
     currentTitle = event.data.title
-    drawTitle()
+    drawText(titleData.ctx, titleData.canvas, currentTitle, 150)
+    titleTexture.needsUpdate = true
+  }
+
+  if (event.data.type === 'SET_FLAVOR') {
+    currentFlavor = event.data.flavor
+    drawText(flavorData.ctx, flavorData.canvas, currentFlavor, 90)
+    flavorTexture.needsUpdate = true
   }
 
   if (event.data.type === 'SET_FONT') {
     currentFont = event.data.font
-    drawTitle()
+
+    // redraw both
+    drawText(titleData.ctx, titleData.canvas, currentTitle, 150)
+    drawText(flavorData.ctx, flavorData.canvas, currentFlavor, 90)
+    titleTexture.needsUpdate = true
+    flavorTexture.needsUpdate = true
   }
 
   if (event.data.type === 'RESET') {
     currentTitle = ''
-    ctx.clearRect(0, 0, canvas.width, canvas.height)
-    textTexture.needsUpdate = true
+    currentFlavor = ''
+    titleData.ctx.clearRect(0, 0, titleData.canvas.width, titleData.canvas.height)
+    flavorData.ctx.clearRect(0, 0, flavorData.canvas.width, flavorData.canvas.height)
+    titleTexture.needsUpdate = true
+    flavorTexture.needsUpdate = true
   }
 
   if (event.data.type === 'GET_SCREENSHOT') {
