@@ -12,6 +12,8 @@
     "vite": "^7.2.4"
   },
   "dependencies": {
-    "three": "^0.182.0"
+    "gsap": "^3.14.2",
+    "three": "^0.182.0",
+    "three-orbitcontrols": "^2.110.2"
   }
 }

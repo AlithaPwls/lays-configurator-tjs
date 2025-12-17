@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 
 let bag = null
 let bagMaterial = null
@@ -8,39 +9,59 @@ let canvas, ctx, textTexture, textPlane
 let currentTitle = ''
 let currentFont = 'Arial'
 
+/* SCENE */
 const scene = new THREE.Scene()
 scene.background = new THREE.Color(0xffffff)
 
+/* CAMERA */
 const camera = new THREE.PerspectiveCamera(
   75,
   window.innerWidth / window.innerHeight,
   0.1,
   1000
 )
-camera.position.set(0, 1.5, 3)
+camera.position.set(0, 1.2, 4)
 
+/* RENDERER */
 const renderer = new THREE.WebGLRenderer({
   antialias: true,
   preserveDrawingBuffer: true
 })
-
 renderer.setSize(window.innerWidth, window.innerHeight)
 document.body.appendChild(renderer.domElement)
 
+/* ORBIT CONTROLS */
+const controls = new OrbitControls(camera, renderer.domElement)
+controls.enableDamping = true
+controls.dampingFactor = 0.08
+controls.enablePan = false
+controls.rotateSpeed = 0.6
+controls.zoomSpeed = 0.8
+controls.minDistance = 2
+controls.maxDistance = 6
+controls.minPolarAngle = Math.PI / 3
+controls.maxPolarAngle = Math.PI / 2
+
+/* LIGHTS */
 scene.add(new THREE.AmbientLight(0xffffff, 0.8))
 
 const dirLight = new THREE.DirectionalLight(0xffffff, 1)
 dirLight.position.set(5, 5, 5)
 scene.add(dirLight)
 
+/* BAG COLOR */
 function setBagColor(hex) {
-  if (bagMaterial) bagMaterial.color.set(hex)
+  if (bagMaterial) {
+    bagMaterial.color.set(hex)
+  }
 }
 
+/* TEXT TEXTURE */
 function createTextTexture() {
   canvas = document.createElement('canvas')
   canvas.width = 1024
   canvas.height = 1024
+
   ctx = canvas.getContext('2d')
 
   ctx.translate(canvas.width, 0)
@@ -50,6 +71,7 @@ function createTextTexture() {
   textTexture = new THREE.CanvasTexture(canvas)
 }
 
+/* DRAW TITLE */
 function drawTitle() {
   if (!ctx || !textTexture || !textPlane) return
 
@@ -69,11 +91,12 @@ function drawTitle() {
   ctx.fillStyle = '#222'
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
-  ctx.fillText(currentTitle, canvas.width / 2, canvas.height * 0.4)
+  ctx.fillText(currentTitle, canvas.width / 2, canvas.height * 0.42)
 
   textTexture.needsUpdate = true
 }
 
+/* TEXT PLANE */
 function createTextPlane() {
   const geometry = new THREE.PlaneGeometry(1.5, 1.5)
   const material = new THREE.MeshBasicMaterial({
@@ -92,14 +115,18 @@ function createTextPlane() {
   bag.add(textPlane)
 }
 
+/* LOAD MODEL */
 const loader = new GLTFLoader()
 loader.load('/models/chipsbag.glb', (gltf) => {
   bag = gltf.scene
-  bag.scale.set(1, 1, 1)
-  bag.position.set(0, 2, 0)
+
+  bag.scale.set(1.2, 1.2, 1.2)
+  bag.position.set(0, 0, 0)
 
   bag.traverse((child) => {
-    if (child.isMesh && !bagMaterial) bagMaterial = child.material
+    if (child.isMesh && !bagMaterial) {
+      bagMaterial = child.material
+    }
   })
 
   createTextTexture()
@@ -107,16 +134,23 @@ loader.load('/models/chipsbag.glb', (gltf) => {
   drawTitle()
 
   scene.add(bag)
+
+  /* 🔥 BELANGRIJK: ROTEREN ROND EIGEN AS */
+  controls.target.copy(bag.position)
+  controls.update()
 })
 
+/* ANIMATE */
 function animate() {
   requestAnimationFrame(animate)
+  controls.update()
   renderer.render(scene, camera)
 }
 animate()
 
+/* POSTMESSAGE COMMUNICATIE */
 window.addEventListener('message', (event) => {
-  if (!event.data || !event.data.type) return
+  if (!event.data?.type) return
 
   if (event.data.type === 'SET_COLOR') {
     setBagColor(event.data.color)
