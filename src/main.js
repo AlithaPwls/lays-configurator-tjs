@@ -43,7 +43,7 @@ controls.update()
 /* =====================
    LIGHTS
 ===================== */
-scene.add(new THREE.AmbientLight(0xffffff, 0.9))
+scene.add(new THREE.AmbientLight(0xffffff, 1.5))
 
 const dirLight = new THREE.DirectionalLight(0xffffff, 1)
 dirLight.position.set(4, 6, 4)
@@ -84,7 +84,7 @@ function drawText(ctx, canvas, text, startFontSize) {
   ctx.clearRect(0, 0, canvas.width, canvas.height)
 
   ctx.font = `bold ${startFontSize}px "${currentFont}"`
-  ctx.fillStyle = '#35F527'
+  ctx.fillStyle = '#ffffff'
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
 
@@ -191,13 +191,13 @@ window.addEventListener('message', (event) => {
 
   if (event.data.type === 'SET_TITLE') {
     currentTitle = event.data.title
-    drawText(titleData.ctx, titleData.canvas, currentTitle, 150)
+    drawText(titleData.ctx, titleData.canvas, currentTitle, 400)
     titleTexture.needsUpdate = true
   }
 
   if (event.data.type === 'SET_FLAVOR') {
     currentFlavor = event.data.flavor
-    drawText(flavorData.ctx, flavorData.canvas, currentFlavor, 90)
+    drawText(flavorData.ctx, flavorData.canvas, currentFlavor, 100)
     flavorTexture.needsUpdate = true
   }
 
@@ -205,8 +205,8 @@ window.addEventListener('message', (event) => {
     currentFont = event.data.font
 
     // redraw both
-    drawText(titleData.ctx, titleData.canvas, currentTitle, 150)
-    drawText(flavorData.ctx, flavorData.canvas, currentFlavor, 90)
+    drawText(titleData.ctx, titleData.canvas, currentTitle, 400)
+    drawText(flavorData.ctx, flavorData.canvas, currentFlavor, 100)
     titleTexture.needsUpdate = true
     flavorTexture.needsUpdate = true
   }
