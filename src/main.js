@@ -92,7 +92,7 @@ function drawText(ctx, canvas, text, startFontSize) {
   const maxWidth = canvas.width * 0.9
   let textWidth = ctx.measureText(text).width
 
-  while (textWidth > maxWidth && fontSize > 40) {
+  while (textWidth > maxWidth && fontSize > 60) {
     fontSize -= 4
     ctx.font = `bold ${fontSize}px "${currentFont}"`
     textWidth = ctx.measureText(text).width
